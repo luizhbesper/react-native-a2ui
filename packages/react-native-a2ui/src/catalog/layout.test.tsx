@@ -1,105 +1,9 @@
-import { act, render } from '@testing-library/react-native';
-import { StyleSheet, Text } from 'react-native';
-import type { ComponentNode, ProtocolEngine, SurfaceHandle } from '../engine/types';
-import { A2UIProvider } from '../renderer/A2UIProvider';
+import { act } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import { useValue } from '../renderer/hooks';
 import type { CatalogComponentProps, ComponentRegistry } from '../renderer/registry';
-import { Surface } from '../renderer/Surface';
+import { createFakeEngine, mount as mountWith, rootStyle } from './__fixtures__/fakeEngine';
 import { basicCatalog } from './index';
-
-// A path-aware in-memory ProtocolEngine. Unlike the flat fake in renderer.test.tsx, this
-// one stores a nested data object so template scoping (relative `{ path }` bindings under a
-// list item) propagates the way web_core's data model does.
-function getNested(root: unknown, pointer: string): unknown {
-  if (pointer === '/' || pointer === '') return root;
-  let cur: unknown = root;
-  for (const seg of pointer.split('/').slice(1)) {
-    if (cur === null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string, unknown>)[seg];
-  }
-  return cur;
-}
-
-function setNested(root: Record<string, unknown>, pointer: string, value: unknown): void {
-  const segs = pointer.split('/').slice(1);
-  const last = segs.pop();
-  if (last === undefined) return;
-  let cur: Record<string, unknown> = root;
-  for (const s of segs) {
-    const next = cur[s];
-    if (typeof next !== 'object' || next === null) cur[s] = {};
-    cur = cur[s] as Record<string, unknown>;
-  }
-  cur[last] = value;
-}
-
-function createFakeEngine() {
-  const nodes = new Map<string, ComponentNode>();
-  const data: Record<string, unknown> = {};
-  const valueListeners = new Map<string, Set<(v: unknown) => void>>();
-  const treeListeners = new Set<(ready: boolean) => void>();
-  const surfaceListeners = new Set<(ids: string[]) => void>();
-  let surfaceExists = false;
-  let rootReady = false;
-
-  const surface: SurfaceHandle = {
-    theme: undefined,
-    getNode: (id) => nodes.get(id),
-    getValue: (pointer) => getNested(data, pointer),
-    subscribeValue: (pointer, cb) => {
-      let set = valueListeners.get(pointer);
-      if (!set) {
-        set = new Set();
-        valueListeners.set(pointer, set);
-      }
-      set.add(cb);
-      return () => set.delete(cb);
-    },
-    setValue: (pointer, value) => setNested(data, pointer, value),
-    subscribeTree: (cb) => {
-      if (rootReady) cb(true);
-      treeListeners.add(cb);
-      return () => treeListeners.delete(cb);
-    },
-    dispatchAction: () => {},
-  };
-
-  const engine: ProtocolEngine = {
-    processMessages: () => {},
-    getSurface: (id) => (surfaceExists && id === 's1' ? surface : undefined),
-    subscribeSurfaces: (cb) => {
-      surfaceListeners.add(cb);
-      cb(surfaceExists ? ['s1'] : []);
-      return () => surfaceListeners.delete(cb);
-    },
-    onClientMessage: () => () => {},
-    getClientCapabilities: () => ({}),
-  };
-
-  return {
-    engine,
-    createSurface() {
-      surfaceExists = true;
-      for (const cb of surfaceListeners) cb(['s1']);
-    },
-    setNode(node: ComponentNode) {
-      nodes.set(node.id, node);
-      if (node.id === 'root') {
-        rootReady = true;
-        for (const cb of treeListeners) cb(true);
-      }
-    },
-    // ponytail: over-notify — every write refreshes all subscribers with their current
-    // value. web_core's signal graph is precise; tests just need correct propagation.
-    writeValue(pointer: string, value: unknown) {
-      setNested(data, pointer, value);
-      for (const [ptr, cbs] of valueListeners) {
-        const v = getNested(data, ptr);
-        for (const cb of cbs) cb(v);
-      }
-    },
-  };
-}
 
 // Test-only leaves. Leaf renders a static label; Bound proves item-scoped relative binding.
 const Leaf = ({ node }: CatalogComponentProps) => <Text>{String(node.properties.text)}</Text>;
@@ -111,17 +15,7 @@ const Bound = ({ node }: CatalogComponentProps) => {
 const registry: ComponentRegistry = { ...basicCatalog, Leaf, Bound };
 
 function mount(fake: ReturnType<typeof createFakeEngine>) {
-  return render(
-    <A2UIProvider engine={fake.engine} registry={registry}>
-      <Surface surfaceId="s1" />
-    </A2UIProvider>,
-  );
-}
-
-function rootStyle(screen: Awaited<ReturnType<typeof render>>) {
-  const json = screen.toJSON();
-  const node = Array.isArray(json) ? json[0] : json;
-  return StyleSheet.flatten(node?.props.style) ?? {};
+  return mountWith(fake, registry);
 }
 
 describe('layout catalog', () => {

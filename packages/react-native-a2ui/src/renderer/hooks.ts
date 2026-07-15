@@ -67,12 +67,18 @@ export function resolvePointer(base: string, pointer: string): string {
  * Subscribes to one data-model pointer and returns its latest value, re-rendering only
  * this component when that pointer changes (fine-grained reactivity). Relative pointers
  * resolve against the current data scope; the initial value is seeded from `getValue`
- * since web_core's data model does not replay on subscribe.
+ * since web_core's data model does not replay on subscribe. A `null` pointer is a
+ * non-binding: it returns `undefined` and subscribes to nothing, so literal (unbound)
+ * DynamicString props don't subscribe to the scope root and lose fine-grained updates.
  */
-export function useValue(pointer: string): unknown {
+export function useValue(pointer: string | null): unknown {
   const surface = useSurface();
-  const absolute = resolvePointer(useDataScope(), pointer);
+  const scope = useDataScope();
+  const absolute = pointer === null ? null : resolvePointer(scope, pointer);
   const store = useMemo(() => {
+    if (absolute === null) {
+      return { subscribe: () => () => {}, getSnapshot: () => undefined };
+    }
     let value: unknown = surface.getValue(absolute);
     return {
       subscribe: (onChange: () => void) =>
