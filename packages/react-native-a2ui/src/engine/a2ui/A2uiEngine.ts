@@ -11,6 +11,7 @@ import {
   MessageProcessor,
 } from '@a2ui/web_core/v0_9';
 import type {
+  ClientCapabilities,
   ClientMessage,
   ProtocolEngine,
   SurfaceHandle,
@@ -21,6 +22,28 @@ import type {
 // The basic catalog's id; must equal the server's createSurface.catalogId.
 // Source: conformance/fixtures/v0_9/catalogs/basic/catalog.json (`catalogId`).
 const BASIC_CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
+
+/** A fire-time data-model reference inside an action context: `{ path: "/pointer" }`. */
+function isPathRef(value: unknown): value is { path: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'path' in value &&
+    typeof (value as { path: unknown }).path === 'string'
+  );
+}
+
+/** Best-effort surfaceId from a server→client message; every op nests it under its key. */
+function surfaceIdOf(message: unknown): string | undefined {
+  if (typeof message !== 'object' || message === null) return undefined;
+  for (const value of Object.values(message)) {
+    if (typeof value === 'object' && value !== null && 'surfaceId' in value) {
+      const id = (value as { surfaceId: unknown }).surfaceId;
+      if (typeof id === 'string') return id;
+    }
+  }
+  return undefined;
+}
 
 /** ProtocolEngine implementation #1: adapts @a2ui/web_core's MessageProcessor. */
 export class A2uiEngine implements ProtocolEngine {
@@ -42,13 +65,17 @@ export class A2uiEngine implements ProtocolEngine {
     for (const raw of batch) {
       const parsed = A2uiMessageSchema.safeParse(raw);
       if (!parsed.success) {
-        this.#emitError('INVALID_MESSAGE', parsed.error.message);
+        this.#emitError('INVALID_MESSAGE', parsed.error.message, surfaceIdOf(raw));
         continue;
       }
       try {
         this.#processor.processMessages([parsed.data]);
       } catch (err) {
-        this.#emitError('PROCESSING_FAILED', err instanceof Error ? err.message : String(err));
+        this.#emitError(
+          'PROCESSING_FAILED',
+          err instanceof Error ? err.message : String(err),
+          surfaceIdOf(parsed.data),
+        );
       }
     }
   }
@@ -77,9 +104,17 @@ export class A2uiEngine implements ProtocolEngine {
         return () => sub.unsubscribe();
       },
       // web_core expects an `{ event: { name, context } }` payload; it stamps the
-      // surfaceId/timestamp and emits through the actionHandler wired above.
+      // surfaceId/timestamp and emits through the actionHandler wired above. It takes
+      // context verbatim, so we resolve `{ path }` refs here, at fire time.
+      // ponytail: top-level `{ path }` only — matches web_core's one-level resolveAction.
+      // `{ call, args }` fn-context and relative-path scoping need a component data scope
+      // that only exists once the rendering binder lands (M1); deferred until then.
       dispatchAction: (name, sourceComponentId, context) => {
-        void surface.dispatchAction({ event: { name, context: context ?? {} } }, sourceComponentId);
+        const resolved: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(context ?? {})) {
+          resolved[key] = isPathRef(value) ? surface.dataModel.get(value.path) : value;
+        }
+        void surface.dispatchAction({ event: { name, context: resolved } }, sourceComponentId);
       },
     };
   }
@@ -97,6 +132,12 @@ export class A2uiEngine implements ProtocolEngine {
     return () => {
       this.#outbound.delete(cb);
     };
+  }
+
+  getClientCapabilities(): ClientCapabilities {
+    // web_core returns a protocol-shaped interface; the neutral boundary keeps it opaque
+    // (the interface lacks an index signature, so widen through unknown deliberately).
+    return this.#processor.getClientCapabilities() as unknown as ClientCapabilities;
   }
 
   #surfaceIds(): string[] {
@@ -119,8 +160,8 @@ export class A2uiEngine implements ProtocolEngine {
     });
   }
 
-  #emitError(code: string, message: string): void {
-    this.#emit({ type: 'error', code, message });
+  #emitError(code: string, message: string, surfaceId?: string): void {
+    this.#emit({ type: 'error', code, message, ...(surfaceId ? { surfaceId } : {}) });
   }
 
   #emit(msg: ClientMessage): void {

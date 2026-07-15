@@ -16,6 +16,13 @@ export interface ComponentNode {
 /** Opaque, catalog-defined theme token object, passed straight through from the wire. */
 export type SurfaceTheme = Record<string, unknown> | undefined;
 
+/**
+ * The client's capability advertisement (supported catalogs). Protocol-defined and
+ * version-keyed; the transport attaches it to outbound traffic as A2A metadata, so the
+ * neutral interface treats it as an opaque blob rather than knowing its shape.
+ */
+export type ClientCapabilities = Record<string, unknown>;
+
 /** An outbound client→server message: a user action or a client-side error. */
 export type ClientMessage =
   | {
@@ -59,4 +66,6 @@ export interface ProtocolEngine {
   subscribeSurfaces(cb: (ids: string[]) => void): Unsubscribe;
   /** Observes outbound client→server messages (actions, errors). */
   onClientMessage(cb: (msg: ClientMessage) => void): Unsubscribe;
+  /** The client's capability blob for the transport to attach as A2A metadata. */
+  getClientCapabilities(): ClientCapabilities;
 }

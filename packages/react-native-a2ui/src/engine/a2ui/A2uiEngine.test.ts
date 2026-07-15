@@ -127,4 +127,47 @@ describe('A2uiEngine', () => {
       sourceComponentId: 'root',
     });
   });
+
+  it('resolves a { path } action context against the live data model at fire time', () => {
+    const engine = new A2uiEngine();
+    engine.processMessages([createSurface('s1'), updateDataModel('s1', '/selected', 'first')]);
+
+    const actions: Extract<ClientMessage, { type: 'action' }>[] = [];
+    engine.onClientMessage((m) => {
+      if (m.type === 'action') actions.push(m);
+    });
+
+    // Change the value AFTER subscribing but BEFORE the action fires: the dispatched
+    // context must carry the value at fire time ('second'), not at bind time ('first').
+    engine.processMessages([updateDataModel('s1', '/selected', 'second')]);
+    engine.getSurface('s1')?.dispatchAction('pick', 'root', { itemId: { path: '/selected' } });
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.context).toEqual({ itemId: 'second' });
+  });
+
+  it('exposes client capabilities carrying the basic catalog id', () => {
+    const engine = new A2uiEngine();
+
+    expect(engine.getClientCapabilities()).toMatchObject({
+      'v0.9': { supportedCatalogIds: [CATALOG_ID] },
+    });
+  });
+
+  it('reports a processing error with its surfaceId through onClientMessage', () => {
+    const engine = new A2uiEngine();
+    const errors: Extract<ClientMessage, { type: 'error' }>[] = [];
+    engine.onClientMessage((m) => {
+      if (m.type === 'error') errors.push(m);
+    });
+
+    // updateComponents on a surface that was never created → web_core throws → the
+    // adapter reports it (not throw) with the surfaceId the offending message named.
+    engine.processMessages([
+      updateComponents('missing', [{ id: 'root', component: 'Text', text: 'x' }]),
+    ]);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ type: 'error', surfaceId: 'missing' });
+  });
 });

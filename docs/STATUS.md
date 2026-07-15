@@ -6,17 +6,17 @@
 
 | Field | Value |
 |---|---|
-| Milestone | **M0 — Engine spike + adapter** (4/5 tasks done) |
-| Current task | none — next up: `M0-T5` (client capabilities + action dispatch through the adapter) |
+| Milestone | **M0 — Engine spike + adapter** (5/5 tasks done — ✅ complete) |
+| Current task | none — M0 complete; next up: `M1-T1` (theme tokens + dark mode) |
 | Blockers | none |
 | web_core | `@a2ui/web_core@0.10.4` pinned; use the `/v0_9` subpath (bare import = v0_8) |
 | Conformance suite | runner green: 43 basic example streams replayed through the adapter (structural + core explicit). Minimal catalog's 7 streams out of scope (no minimal impl in web_core) |
 | Last npm release | none |
 | CI | workflows committed, first run pending on GitHub push |
 
-## Next task (from [specs/M0.md](./specs/M0.md))
+## Next task (from [specs/M1.md](./specs/M1.md))
 
-1. **M0-T5** — Client capabilities + action dispatch through the adapter (M0 exit).
+1. **M1-T1** — Theme tokens + dark mode (start of M1 — renderer + basic catalog).
 
 ## Decisions pending
 
@@ -26,6 +26,8 @@
 ## Session log
 
 <!-- Newest first. Format: date · session focus · what shipped · what's next -->
+
+- **2026-07-15** · M0-T5 outbound path (M0 exit) · Completed the client→server path through the adapter, no rendering. **Capabilities:** new `ProtocolEngine.getClientCapabilities(): ClientCapabilities` (opaque `Record<string,unknown>`) delegating to web_core's `MessageProcessor.getClientCapabilities()` — returns `{ 'v0.9': { supportedCatalogIds: [basic] } }`; per protocol these are **A2A transport metadata**, not envelope content, so a future transport attaches them (neutral union stays clean; user-confirmed design). **Fire-time `{path}` resolution:** `surface.dispatchAction` takes context verbatim and the rendering binder that normally resolves is bypassed until M1, so the surface handle's `dispatchAction` now resolves top-level `{ path }` refs against the live `dataModel` at fire time (proven by a test that mutates the value between subscribe and dispatch). web_core already stamps the ISO timestamp itself — adapter adds none. **Errors:** outbound errors now carry `surfaceId` (extracted from the offending message via `surfaceIdOf`; protocol error schema requires it). **Scope trims (ponytail):** dropped speculative per-surface `onError` wiring + the error `path?` field — web_core only fires `onError` from the rendering layer (`data-context.js`), so neither has a producer or a test until the M1 renderer; noted as M1 ceilings in code. 3 new Vitest behaviors, all green (vitest 173 incl. 49 conformance + jest 1), lint + typecheck clean. Engine still unexported from `src/index.ts` (M1) → not user-facing → no changeset. **M0 complete. Next: M1-T1 (theme tokens + dark mode).**
 
 - **2026-07-15** · M0-T4 conformance harness · The harness IS the test — replays every vendored official example stream through `A2uiEngine` (no rendering). `conformance/helpers.ts` — `loadExampleStreams` (import.meta.glob `?raw`, matching fixtures.test.ts), `declaredSurfaceIds`, `replay` (fresh engine, collects outbound `type:'error'` messages), and `replayProbing` (subscribes data-model pointers the moment the surface exists, then finishes — needed because web_core's `dataModel.subscribe` guards its first sync run with `isSync`, so **subscribe does not emit the current value**; must subscribe before the mutating message). `conformance/runner.test.ts` — `it.each` structural invariant over the **43 basic** streams (replay emits zero errors; every declared surface exists with a `root` node) + explicit tree/data-model assertions for the core `00_*` examples (simple-text, row-layout, interactive-button, simple-login-form, incremental). **Scope call:** the 7 minimal-catalog streams are out of scope for M0 — the adapter registers only the basic catalog (M0-T3) and web_core ships no minimal catalog impl (minimal's `capitalize` function has no implementation to reuse), so their `createSurface` is rejected by design; documented + count-guarded in the runner, left for a future task. **CI needed no change** — `ci.yml` already runs `pnpm --filter '!website' test` and `vitest.config.ts` already globs `conformance/**/*.test.ts`, so the runner is picked up automatically. All green (vitest 170 incl. 49 conformance + jest 1), lint + typecheck clean. Tests only, not user-facing → no changeset. **Next: M0-T5 (M0 exit).**
 
