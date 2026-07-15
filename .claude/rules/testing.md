@@ -1,10 +1,17 @@
+---
+paths:
+  - "packages/**/*.{ts,tsx}"
+  - "**/jest.config.js"
+  - "**/vitest.config.ts"
+---
+
 # Testing
 
-- **TDD**: write the failing test first. Each milestone task lists its tests — implement exactly those, then stop.
-- **Runners by extension**: `*.test.ts` = Vitest (pure TS: engine, transports, theme logic, llm). `*.test.tsx` = Jest + `@testing-library/react-native` (components, renderer). Never mix.
-- **Simple and assertive**: one behavior per test, named for the behavior (`resolves path context at fire time`, not `test action 2`). Assert outcomes, not implementation details.
-- **No redundancy**: if a case is covered by the conformance suite or another unit test, don't repeat it. One test file per module.
-- **Happy path + named edge cases** — the task spec names the edge cases; cover those, don't invent padding.
-- **No gratuitous snapshots**: explicit assertions. Sanctioned snapshot exceptions: the LLM system-prompt text (M2-T3) — reviewed and updated deliberately.
-- **No network in tests**: mocked streams/fetch only. Conformance fixtures are local.
-- The conformance suite (`conformance/`) must stay green on every PR — it is the compliance badge. Never weaken an assertion to make it pass; fix the code or file the upstream bug.
+- Runners split by extension: `*.test.ts` runs on Vitest (pure TS: engine, transports, theme, llm); `*.test.tsx` runs on Jest + `@testing-library/react-native` (components, renderer). Never mix.
+- RNTL 14: `render` is async — always `await render(...)`.
+- One behavior per test, named for the behavior: `resolves path context at fire time`, not `test action 2`. Assert outcomes, not implementation details.
+- One test file per module. If a case is covered by the conformance suite or another unit test, don't repeat it.
+- Cover the happy path plus the edge cases named in the task spec — no invented padding.
+- No snapshots except the LLM system-prompt text (M2-T3), which is reviewed and updated deliberately. Everything else uses explicit assertions.
+- No network in tests: mocked streams/fetch only. Conformance fixtures are local.
+- Never weaken a conformance assertion to make it pass — fix the code or file the upstream bug.

@@ -1,9 +1,12 @@
 ---
 name: add-catalog-component
 description: Add or extend a basic-catalog component (Text, Button, TextField, ...) following the schema-first TDD procedure. Use when implementing M1 catalog tasks or adding any new catalog component.
+argument-hint: [ComponentName]
 ---
 
 # add-catalog-component
+
+Component to add: $ARGUMENTS
 
 Procedure for one catalog component. Never hand-guess props — the vendored schema is the source of truth.
 
@@ -16,7 +19,7 @@ Procedure for one catalog component. Never hand-guess props — the vendored sch
    - if input: user interaction writes back to the bound path (`fireEvent`);
    - if actionable: dispatches action with correct `sourceComponentId` and context;
    - edge cases: missing optional props, `null` bound value.
-3. **Implement** in `src/catalog/<Component>.tsx`: plain `StyleSheet`, all visual values from theme tokens (`useTheme()`), no new dependencies (ADR-0002). Tolerate null/missing data without throwing.
+3. **Implement** in `src/catalog/<Component>.tsx`: plain `StyleSheet`, all visual values from theme tokens (`useTheme()`), no new dependencies (ADR-0002).
 4. **Register** in the basic catalog registry + export from the package root.
 5. **Verify:** `pnpm --filter react-native-a2ui test` and `pnpm lint` green. Add the component to the example app gallery fixture if one exists.
 6. **Close out:** changeset (`feat(catalog): add <Component>`), update `docs/STATUS.md`.
