@@ -8,6 +8,7 @@ export const VERSION = '0.0.0';
 
 // Basic catalog (ADR-0002: plain RN primitives + theme tokens, no UI deps)
 export {
+  AudioPlayer,
   Button,
   basicCatalog,
   Card,
@@ -19,10 +20,13 @@ export {
   Icon,
   Image,
   List,
+  Modal,
   Row,
   Slider,
+  Tabs,
   Text,
   TextField,
+  Video,
 } from './catalog';
 
 // Protocol-neutral engine contract (ADR-0005)
