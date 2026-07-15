@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Builds
+lib/
+dist/
+.next/
+out/
+.expo/
+.turbo/
+
+# Logs & caches
+*.log
+.DS_Store
+coverage/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Local agent settings (per-developer)
+.claude/settings.local.json
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

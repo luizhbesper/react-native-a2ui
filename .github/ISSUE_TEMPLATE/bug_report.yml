@@ -1,0 +1,35 @@
+name: Bug report
+description: Something broken in react-native-a2ui
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: react-native-a2ui@0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Expo Go
+        - Expo dev build
+        - Bare React Native CLI
+        - react-native-web
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps or repo. If protocol-related, include the A2UI message stream (JSONL) that triggers it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual behavior
+    validations:
+      required: true

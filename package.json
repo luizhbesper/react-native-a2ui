@@ -1,0 +1,26 @@
+{
+  "name": "react-native-a2ui-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for react-native-a2ui — the A2UI protocol renderer for React Native",
+  "repository": "github:luizhbesper/react-native-a2ui",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "changeset": "changeset",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "@changesets/cli": "^2.31.0",
+    "typescript": "^7.0.2"
+  }
+}
