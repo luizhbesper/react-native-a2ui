@@ -6,8 +6,8 @@
 
 | Field | Value |
 |---|---|
-| Milestone | **M0 — Engine spike + adapter** (5/5 tasks done — ✅ complete) |
-| Current task | none — M0 complete; next up: `M1-T1` (theme tokens + dark mode) |
+| Milestone | **M1 — Renderer + basic catalog** (1/8 tasks done) |
+| Current task | none — M1-T1 done; next up: `M1-T2` (Provider, Surface, node renderer, registry) |
 | Blockers | none |
 | web_core | `@a2ui/web_core@0.10.4` pinned; use the `/v0_9` subpath (bare import = v0_8) |
 | Conformance suite | runner green: 43 basic example streams replayed through the adapter (structural + core explicit). Minimal catalog's 7 streams out of scope (no minimal impl in web_core) |
@@ -16,7 +16,7 @@
 
 ## Next task (from [specs/M1.md](./specs/M1.md))
 
-1. **M1-T1** — Theme tokens + dark mode (start of M1 — renderer + basic catalog).
+1. **M1-T2** — Provider, Surface, node renderer, registry (RNTL: progressive render, unknown-component warning, fine-grained re-render, ErrorBoundary).
 
 ## Decisions pending
 
@@ -26,6 +26,8 @@
 ## Session log
 
 <!-- Newest first. Format: date · session focus · what shipped · what's next -->
+
+- **2026-07-15** · M1-T1 theme tokens + dark mode (M1 start) · Ported web_core's official `--a2ui-*` CSS vars (`basic_catalog/styles/default.js`) to an RN token set. `src/theme/tokens.ts` — RN-free (Vitest-loadable): `Theme` (grouped: `colors`/`spacing`/`fontSizes`/`lineHeights`/`radii`/`borderWidths`/`fontFamilies`), `LIGHT_THEME`/`DARK_THEME` constants (CSS `light-dark()`/`color-mix` resolved to concrete per-scheme hex; lengths as dp, line-heights as ratios), and pure `resolveTheme({scheme, userTheme, surfaceTheme})` — scheme picks the base (non-`dark` → light), deep-merges the app override, then the wire `primaryColor` (hex-validated against the basic-catalog pattern) overrides `colors.primary` last. File-header documents the full token→CSS-var mapping table (exit criterion). `src/theme/ThemeContext.tsx` — thin `<A2UIThemeProvider>` (`useColorScheme()` → `resolveTheme`, memoized) + `useTheme()`. **Scope (ponytail):** primary/secondary variants are fixed hex, not a runtime color-mix engine — recompute from arbitrary `primaryColor` when buttons need hover states (M1-T5); ThemeContext gets no dedicated test (thin RN wrapper, covered when `<Surface>` consumes it in M1-T2). 4 Vitest tests (default resolve, `primaryColor` override, deep-merge, dark-scheme select), all green (vitest 177 + jest 1), lint + typecheck clean. Not exported from `src/index.ts` yet (public API lands with the renderer in M1-T2) → not user-facing → no changeset. **Next: M1-T2.**
 
 - **2026-07-15** · M0-T5 outbound path (M0 exit) · Completed the client→server path through the adapter, no rendering. **Capabilities:** new `ProtocolEngine.getClientCapabilities(): ClientCapabilities` (opaque `Record<string,unknown>`) delegating to web_core's `MessageProcessor.getClientCapabilities()` — returns `{ 'v0.9': { supportedCatalogIds: [basic] } }`; per protocol these are **A2A transport metadata**, not envelope content, so a future transport attaches them (neutral union stays clean; user-confirmed design). **Fire-time `{path}` resolution:** `surface.dispatchAction` takes context verbatim and the rendering binder that normally resolves is bypassed until M1, so the surface handle's `dispatchAction` now resolves top-level `{ path }` refs against the live `dataModel` at fire time (proven by a test that mutates the value between subscribe and dispatch). web_core already stamps the ISO timestamp itself — adapter adds none. **Errors:** outbound errors now carry `surfaceId` (extracted from the offending message via `surfaceIdOf`; protocol error schema requires it). **Scope trims (ponytail):** dropped speculative per-surface `onError` wiring + the error `path?` field — web_core only fires `onError` from the rendering layer (`data-context.js`), so neither has a producer or a test until the M1 renderer; noted as M1 ceilings in code. 3 new Vitest behaviors, all green (vitest 173 incl. 49 conformance + jest 1), lint + typecheck clean. Engine still unexported from `src/index.ts` (M1) → not user-facing → no changeset. **M0 complete. Next: M1-T1 (theme tokens + dark mode).**
 
