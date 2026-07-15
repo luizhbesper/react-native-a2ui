@@ -6,18 +6,17 @@
 
 | Field | Value |
 |---|---|
-| Milestone | **M0 — Engine spike + adapter** (3/5 tasks done) |
-| Current task | none — next up: `M0-T4` (conformance harness replaying official streams) |
+| Milestone | **M0 — Engine spike + adapter** (4/5 tasks done) |
+| Current task | none — next up: `M0-T5` (client capabilities + action dispatch through the adapter) |
 | Blockers | none |
 | web_core | `@a2ui/web_core@0.10.4` pinned; use the `/v0_9` subpath (bare import = v0_8) |
-| Conformance suite | fixtures vendored (v0_9, 63 files); runner pending (M0-T4) |
+| Conformance suite | runner green: 43 basic example streams replayed through the adapter (structural + core explicit). Minimal catalog's 7 streams out of scope (no minimal impl in web_core) |
 | Last npm release | none |
 | CI | workflows committed, first run pending on GitHub push |
 
-## Next 3 tasks (from [specs/M0.md](./specs/M0.md))
+## Next task (from [specs/M0.md](./specs/M0.md))
 
-1. **M0-T4** — Conformance harness replaying official streams.
-2. **M0-T5** — Client capabilities + action dispatch through the adapter.
+1. **M0-T5** — Client capabilities + action dispatch through the adapter (M0 exit).
 
 ## Decisions pending
 
@@ -27,6 +26,8 @@
 ## Session log
 
 <!-- Newest first. Format: date · session focus · what shipped · what's next -->
+
+- **2026-07-15** · M0-T4 conformance harness · The harness IS the test — replays every vendored official example stream through `A2uiEngine` (no rendering). `conformance/helpers.ts` — `loadExampleStreams` (import.meta.glob `?raw`, matching fixtures.test.ts), `declaredSurfaceIds`, `replay` (fresh engine, collects outbound `type:'error'` messages), and `replayProbing` (subscribes data-model pointers the moment the surface exists, then finishes — needed because web_core's `dataModel.subscribe` guards its first sync run with `isSync`, so **subscribe does not emit the current value**; must subscribe before the mutating message). `conformance/runner.test.ts` — `it.each` structural invariant over the **43 basic** streams (replay emits zero errors; every declared surface exists with a `root` node) + explicit tree/data-model assertions for the core `00_*` examples (simple-text, row-layout, interactive-button, simple-login-form, incremental). **Scope call:** the 7 minimal-catalog streams are out of scope for M0 — the adapter registers only the basic catalog (M0-T3) and web_core ships no minimal catalog impl (minimal's `capitalize` function has no implementation to reuse), so their `createSurface` is rejected by design; documented + count-guarded in the runner, left for a future task. **CI needed no change** — `ci.yml` already runs `pnpm --filter '!website' test` and `vitest.config.ts` already globs `conformance/**/*.test.ts`, so the runner is picked up automatically. All green (vitest 170 incl. 49 conformance + jest 1), lint + typecheck clean. Tests only, not user-facing → no changeset. **Next: M0-T5 (M0 exit).**
 
 - **2026-07-15** · M0-T3 ProtocolEngine interface + A2uiEngine adapter · Made the ADR-0005 modularity boundary real. `src/engine/types.ts` — the sanctioned single-impl `ProtocolEngine` + `SurfaceHandle` interface, imports nothing (protocol-neutral, no web_core/React leak). `src/engine/a2ui/A2uiEngine.ts` (129 lines, ≤300 budget) — impl #1, the only web_core importer, wraps `MessageProcessor` from the `/v0_9` subpath: registers the basic catalog (`new Catalog(BASIC_CATALOG_ID, BASIC_COMPONENTS, BASIC_FUNCTIONS)`), `processMessages` validates each message with web_core's own `A2uiMessageSchema` and processes it in isolation (non-transactional — one bad message reports via `onClientMessage` + skips, never throws/aborts the rest, per SPEC §2.5), `getSurface` returns a live `SurfaceHandle` over `componentsModel`/`dataModel`, outbound actions wired via the constructor `actionHandler` (payload shape is `{event:{name,context}}` — read from web_core source). TDD, 6 Vitest behaviors (tree build + reactive `subscribeTree`, value subscription, non-transactional error reporting, unknown-surfaceId no-throw, deleteSurface teardown, outbound action). All green (vitest 121 + jest 1), lint + typecheck clean. Not exported from `src/index.ts` yet (M1) and not user-facing → no changeset. **Next: M0-T4.**
 
