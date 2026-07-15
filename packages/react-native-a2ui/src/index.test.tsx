@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { VERSION } from './index';
 
-// Pipeline sanity: proves the Vitest runner works. Replaced by real engine tests in M0.
+// Smoke test: the public barrel re-exports RN-backed renderer + theme modules, so it
+// loads only under Jest. Proves the entry point resolves without throwing.
 describe('package entry', () => {
   it('exports a version', () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);

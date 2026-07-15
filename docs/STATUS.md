@@ -6,8 +6,8 @@
 
 | Field | Value |
 |---|---|
-| Milestone | **M1 — Renderer + basic catalog** (1/8 tasks done) |
-| Current task | none — M1-T1 done; next up: `M1-T2` (Provider, Surface, node renderer, registry) |
+| Milestone | **M1 — Renderer + basic catalog** (2/8 tasks done) |
+| Current task | none — M1-T2 done; next up: `M1-T3` (basic catalog: layout components) |
 | Blockers | none |
 | web_core | `@a2ui/web_core@0.10.4` pinned; use the `/v0_9` subpath (bare import = v0_8) |
 | Conformance suite | runner green: 43 basic example streams replayed through the adapter (structural + core explicit). Minimal catalog's 7 streams out of scope (no minimal impl in web_core) |
@@ -16,7 +16,7 @@
 
 ## Next task (from [specs/M1.md](./specs/M1.md))
 
-1. **M1-T2** — Provider, Surface, node renderer, registry (RNTL: progressive render, unknown-component warning, fine-grained re-render, ErrorBoundary).
+1. **M1-T3** — basic catalog, layout session: Row, Column, Card, Divider, List (incl. template lists via FlatList). Props transcribed from the vendored schemas; export from the package root.
 
 ## Decisions pending
 
@@ -26,6 +26,8 @@
 ## Session log
 
 <!-- Newest first. Format: date · session focus · what shipped · what's next -->
+
+- **2026-07-15** · M1-T2 renderer: Provider, Surface, node renderer, registry · Built the renderer over the `ProtocolEngine`/`SurfaceHandle` interface only (no web_core; ADR-0005). `src/renderer/registry.ts` — the allow-list contract: `CatalogComponentProps` (`{ node }`), `CatalogComponent`, `ComponentRegistry` (`Record<type, Component>`); an absent entry renders nothing. `src/renderer/hooks.ts` — `<A2UIProvider>` + `<Surface>` React contexts with throwing `useA2UI`/`useSurface` guards, and `useValue(pointer)` (fine-grained: `useSyncExternalStore` over `surface.subscribeValue`, snapshot cached from the callback since web_core doesn't replay on subscribe → `undefined` until first write). `src/renderer/NodeRenderer.tsx` — registry lookup (unknown → `onUnknownComponent(type)` + null), each node wrapped in a class `NodeErrorBoundary` (getDerivedStateFromError → null) so a crashing component can't take down the surface. `src/renderer/Surface.tsx` — progressive: renders null until the surface exists (`subscribeSurfaces`, handles createSurface arriving after mount) AND its `root` node arrives (`subscribeTree`), then paints the tree under an `<A2UIThemeProvider surfaceTheme={handle.theme}>` (wires the M1-T1 theme — the documented theme flow — so catalog components can call `useTheme`). `src/renderer/A2UIProvider.tsx` — memoized context holding engine + registry + app `theme` override + `onUnknownComponent`. 4 RNTL behaviors, one file (renderer-pipeline, not per-module units): progressive paint, unknown-component report, fine-grained re-render (render counters: bound node re-renders on its write, sibling doesn't), ErrorBoundary containment. **Public API landed** — `src/index.ts` now exports the renderer, registry contract, the theme layer (withheld since M1-T1 "until the renderer lands"), and the neutral engine types; `A2uiEngine` stays internal until the consumer story. **Test-runner note:** the barrel is now RN-backed, so its smoke test moved `index.test.ts` → `index.test.tsx` (Jest). **RNTL gotcha:** external store/effect flushes need `await act(async () => …)`, not sync `act`. **Scope (ponytail):** placeholder components only (real catalog in M1-T3+); `useValue` initial value stays `undefined` (data model quirk), fine until bound inputs in M1-T5. All green (vitest 176 + jest 6), lint + typecheck clean. User-facing (new public exports) → changeset added. **Next: M1-T3.**
 
 - **2026-07-15** · M1-T1 theme tokens + dark mode (M1 start) · Ported web_core's official `--a2ui-*` CSS vars (`basic_catalog/styles/default.js`) to an RN token set. `src/theme/tokens.ts` — RN-free (Vitest-loadable): `Theme` (grouped: `colors`/`spacing`/`fontSizes`/`lineHeights`/`radii`/`borderWidths`/`fontFamilies`), `LIGHT_THEME`/`DARK_THEME` constants (CSS `light-dark()`/`color-mix` resolved to concrete per-scheme hex; lengths as dp, line-heights as ratios), and pure `resolveTheme({scheme, userTheme, surfaceTheme})` — scheme picks the base (non-`dark` → light), deep-merges the app override, then the wire `primaryColor` (hex-validated against the basic-catalog pattern) overrides `colors.primary` last. File-header documents the full token→CSS-var mapping table (exit criterion). `src/theme/ThemeContext.tsx` — thin `<A2UIThemeProvider>` (`useColorScheme()` → `resolveTheme`, memoized) + `useTheme()`. **Scope (ponytail):** primary/secondary variants are fixed hex, not a runtime color-mix engine — recompute from arbitrary `primaryColor` when buttons need hover states (M1-T5); ThemeContext gets no dedicated test (thin RN wrapper, covered when `<Surface>` consumes it in M1-T2). 4 Vitest tests (default resolve, `primaryColor` override, deep-merge, dark-scheme select), all green (vitest 177 + jest 1), lint + typecheck clean. Not exported from `src/index.ts` yet (public API lands with the renderer in M1-T2) → not user-facing → no changeset. **Next: M1-T2.**
 
