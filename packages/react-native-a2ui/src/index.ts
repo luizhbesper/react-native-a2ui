@@ -7,7 +7,20 @@
 export const VERSION = '0.0.0';
 
 // Basic catalog (ADR-0002: plain RN primitives + theme tokens, no UI deps)
-export { basicCatalog, Card, Column, Divider, Icon, Image, List, Row, Text } from './catalog';
+export {
+  Button,
+  basicCatalog,
+  Card,
+  CheckBox,
+  Column,
+  Divider,
+  Icon,
+  Image,
+  List,
+  Row,
+  Text,
+  TextField,
+} from './catalog';
 
 // Protocol-neutral engine contract (ADR-0005)
 export type {

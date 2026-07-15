@@ -10,32 +10,10 @@ import {
   Text as RNText,
   type TextStyle,
 } from 'react-native';
-import { useValue } from '../renderer/hooks';
 import type { CatalogComponentProps } from '../renderer/registry';
 import { useTheme } from '../theme/ThemeContext';
 import type { Theme } from '../theme/tokens';
-
-// A DynamicString (common_types.json #/$defs/DynamicString) is a literal string, a
-// `{ path }` DataBinding, or a `{ call, args }` FunctionCall. We resolve literals and
-// bindings; function calls need engine-side evaluation with no interface yet, so they
-// resolve to '' (deferred to a later task).
-function bindingPath(value: unknown): string | null {
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const path = (value as Record<string, unknown>).path;
-    if (typeof path === 'string') return path;
-  }
-  return null;
-}
-
-/** Resolves a DynamicString property to a string, subscribing when it is a `{ path }` binding. */
-function useDynamicString(value: unknown): string {
-  const path = bindingPath(value);
-  const bound = useValue(path);
-  const resolved = path === null ? value : bound;
-  if (typeof resolved === 'string') return resolved;
-  if (typeof resolved === 'number' || typeof resolved === 'boolean') return String(resolved);
-  return '';
-}
+import { useDynamicString } from './binding';
 
 // Markdown-lite: inline **bold**/__bold__ and *italic*/_italic_ only. The Text schema names
 // "simple Markdown ... without HTML, images, or links"; heading size comes from `variant`, so

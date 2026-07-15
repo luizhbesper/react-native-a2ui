@@ -43,6 +43,20 @@ export function createFakeEngine() {
   const surfaceListeners = new Set<(ids: string[]) => void>();
   let surfaceExists = false;
   let rootReady = false;
+  const dispatched: {
+    name: string;
+    sourceComponentId: string;
+    context?: Record<string, unknown>;
+  }[] = [];
+
+  // ponytail: over-notify — every write refreshes all subscribers with their current
+  // value. web_core's signal graph is precise; tests just need correct propagation.
+  function notify() {
+    for (const [ptr, cbs] of valueListeners) {
+      const v = getNested(data, ptr);
+      for (const cb of cbs) cb(v);
+    }
+  }
 
   const surface: SurfaceHandle = {
     theme: undefined,
@@ -57,13 +71,20 @@ export function createFakeEngine() {
       set.add(cb);
       return () => set.delete(cb);
     },
-    setValue: (pointer, value) => setNested(data, pointer, value),
+    // Mirrors the real engine: a client-side write both persists and notifies, so two-way
+    // inputs re-read reactively after writing back.
+    setValue: (pointer, value) => {
+      setNested(data, pointer, value);
+      notify();
+    },
     subscribeTree: (cb) => {
       if (rootReady) cb(true);
       treeListeners.add(cb);
       return () => treeListeners.delete(cb);
     },
-    dispatchAction: () => {},
+    dispatchAction: (name, sourceComponentId, context) => {
+      dispatched.push({ name, sourceComponentId, context });
+    },
   };
 
   const engine: ProtocolEngine = {
@@ -80,6 +101,8 @@ export function createFakeEngine() {
 
   return {
     engine,
+    /** Records every `surface.dispatchAction` call, verbatim (context unresolved). */
+    dispatched,
     createSurface() {
       surfaceExists = true;
       for (const cb of surfaceListeners) cb(['s1']);
@@ -91,14 +114,10 @@ export function createFakeEngine() {
         for (const cb of treeListeners) cb(true);
       }
     },
-    // ponytail: over-notify — every write refreshes all subscribers with their current
-    // value. web_core's signal graph is precise; tests just need correct propagation.
+    /** Server-driven write (streamed data-model update): persists and notifies. */
     writeValue(pointer: string, value: unknown) {
       setNested(data, pointer, value);
-      for (const [ptr, cbs] of valueListeners) {
-        const v = getNested(data, ptr);
-        for (const cb of cbs) cb(v);
-      }
+      notify();
     },
   };
 }
