@@ -39,23 +39,49 @@ export function useSurface(): SurfaceHandle {
 
 export const SurfaceContextProvider = SurfaceContext.Provider;
 
+// The absolute JSON-pointer base that relative bindings resolve against. Root is '/';
+// a template list nests it to the item's path (e.g. '/items/0') for its descendants.
+const DataScopeContext = createContext<string>('/');
+
+/** Reads the current data scope (absolute base pointer) a node renders under. */
+export function useDataScope(): string {
+  return useContext(DataScopeContext);
+}
+
+export const DataScopeContextProvider = DataScopeContext.Provider;
+
+/**
+ * Resolves a possibly-relative JSON pointer against a scope base, mirroring web_core's
+ * DataContext: an absolute pointer wins as-is; '' or '.' is the base; otherwise it joins.
+ */
+export function resolvePointer(base: string, pointer: string): string {
+  if (pointer.startsWith('/')) return pointer;
+  if (pointer === '' || pointer === '.') return base;
+  let b = base;
+  if (b.endsWith('/') && b.length > 1) b = b.slice(0, -1);
+  if (b === '/') b = '';
+  return `${b}/${pointer}`;
+}
+
 /**
  * Subscribes to one data-model pointer and returns its latest value, re-rendering only
- * this component when that pointer changes (fine-grained reactivity). The value is
- * `undefined` until the first write — web_core's data model does not replay on subscribe.
+ * this component when that pointer changes (fine-grained reactivity). Relative pointers
+ * resolve against the current data scope; the initial value is seeded from `getValue`
+ * since web_core's data model does not replay on subscribe.
  */
 export function useValue(pointer: string): unknown {
   const surface = useSurface();
+  const absolute = resolvePointer(useDataScope(), pointer);
   const store = useMemo(() => {
-    let value: unknown;
+    let value: unknown = surface.getValue(absolute);
     return {
       subscribe: (onChange: () => void) =>
-        surface.subscribeValue(pointer, (next) => {
+        surface.subscribeValue(absolute, (next) => {
           value = next;
           onChange();
         }),
       getSnapshot: () => value,
     };
-  }, [surface, pointer]);
+  }, [surface, absolute]);
   return useSyncExternalStore(store.subscribe, store.getSnapshot);
 }

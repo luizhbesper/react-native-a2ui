@@ -1,10 +1,13 @@
 /**
  * react-native-a2ui — React Native renderer for Google's A2UI protocol.
  *
- * Public API: the renderer (`A2UIProvider`/`Surface`), the catalog registry contract,
- * the theme layer, and the protocol-neutral engine types transports/engines speak to.
+ * Public API: the renderer (`A2UIProvider`/`Surface`), the basic catalog, the catalog
+ * registry contract, the theme layer, and the protocol-neutral engine types.
  */
 export const VERSION = '0.0.0';
+
+// Basic catalog (ADR-0002: plain RN primitives + theme tokens, no UI deps)
+export { basicCatalog, Card, Column, Divider, List, Row } from './catalog';
 
 // Protocol-neutral engine contract (ADR-0005)
 export type {

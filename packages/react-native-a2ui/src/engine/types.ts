@@ -46,6 +46,8 @@ export interface SurfaceHandle {
   subscribeTree(cb: (rootReady: boolean) => void): Unsubscribe;
   /** The component with this id, or undefined if not (yet) present. */
   getNode(id: string): ComponentNode | undefined;
+  /** The current value at a JSON-pointer path (subscribe does not replay, so reads seed from here). */
+  getValue(pointer: string): unknown;
   /** Observes a JSON-pointer path; the callback fires on every change to it. */
   subscribeValue(pointer: string, cb: (value: unknown) => void): Unsubscribe;
   /** Writes a value at a JSON-pointer path (two-way inputs). */

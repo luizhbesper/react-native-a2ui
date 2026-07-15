@@ -89,6 +89,7 @@ export class A2uiEngine implements ProtocolEngine {
         const node = surface.componentsModel.get(nodeId);
         return node ? { id: node.id, type: node.type, properties: node.properties } : undefined;
       },
+      getValue: (pointer) => surface.dataModel.get(pointer),
       subscribeValue: (pointer, cb) => {
         const sub = surface.dataModel.subscribe(pointer, cb);
         return () => sub.unsubscribe();

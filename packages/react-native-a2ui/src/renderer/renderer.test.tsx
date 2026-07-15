@@ -22,6 +22,7 @@ function createFakeEngine() {
   const surface: SurfaceHandle = {
     theme: undefined,
     getNode: (id) => nodes.get(id),
+    getValue: () => undefined,
     subscribeValue: (pointer, cb) => {
       let set = valueListeners.get(pointer);
       if (!set) {
