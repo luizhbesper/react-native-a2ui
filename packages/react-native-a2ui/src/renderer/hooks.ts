@@ -39,6 +39,23 @@ export function useSurface(): SurfaceHandle {
 
 export const SurfaceContextProvider = SurfaceContext.Provider;
 
+// An extra press a container (e.g. Modal) contributes to interactive descendants used as its
+// trigger, so a Button trigger keeps firing its own action AND performs the container's gesture
+// (open) on one tap — without the container swallowing the touch. `null` = no ancestor to compose.
+const PressComposeContext = createContext<(() => void) | null>(null);
+
+export const PressComposeProvider = PressComposeContext.Provider;
+
+/** Composes an interactive component's own press with an ancestor container's, if one is present. */
+export function useComposedPress(own: (() => void) | undefined): (() => void) | undefined {
+  const composed = useContext(PressComposeContext);
+  if (composed === null) return own;
+  return () => {
+    own?.();
+    composed();
+  };
+}
+
 // The absolute JSON-pointer base that relative bindings resolve against. Root is '/';
 // a template list nests it to the item's path (e.g. '/items/0') for its descendants.
 const DataScopeContext = createContext<string>('/');

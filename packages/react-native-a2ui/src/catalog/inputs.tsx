@@ -3,7 +3,7 @@
 // `#/components/<Name>` path. Plain RN primitives + theme tokens only (ADR-0002).
 
 import { Pressable, Text as RNText, TextInput, View, type ViewStyle } from 'react-native';
-import { useSurface } from '../renderer/hooks';
+import { useComposedPress, useSurface } from '../renderer/hooks';
 import { NodeRenderer } from '../renderer/NodeRenderer';
 import type { CatalogComponentProps } from '../renderer/registry';
 import { useTheme } from '../theme/ThemeContext';
@@ -61,9 +61,11 @@ export function Button({ node }: CatalogComponentProps) {
   const surface = useSurface();
   const p = node.properties;
   const action = eventAction(p.action);
-  const onPress = action
-    ? () => surface.dispatchAction(action.name, node.id, action.context)
-    : undefined;
+  // Composes with an ancestor container's press (e.g. a Modal opening) when this Button is its
+  // trigger, so the action fires AND the modal opens on one tap; a no-op outside such a container.
+  const onPress = useComposedPress(
+    action ? () => surface.dispatchAction(action.name, node.id, action.context) : undefined,
+  );
   return (
     <Pressable
       accessibilityRole="button"

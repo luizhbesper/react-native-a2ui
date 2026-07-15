@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { Pressable, Text as RNText, StyleSheet, View } from 'react-native';
+import { PressComposeProvider } from '../renderer/hooks';
 import { NodeRenderer } from '../renderer/NodeRenderer';
 import type { CatalogComponentProps } from '../renderer/registry';
 import { useTheme } from '../theme/ThemeContext';
@@ -85,24 +86,24 @@ export function Tabs({ node }: CatalogComponentProps) {
 // the modal). Client-managed open state with a conditional overlay (not RN core Modal, whose
 // iOS `isRendered` latch never clears under Jest so it can't be closed in tests); a backdrop
 // press closes it.
-// ponytail: the trigger is rendered non-interactive (pointerEvents="none") inside the opener
-// Pressable so a tap reliably opens the modal even when the trigger is itself a Button — that
-// suppresses the trigger's own declared action while it serves as the opener. The overlay is
-// surface-local, not a native portal (no OS back-button handling); a real adapter can swap in
-// RN core Modal or a portal library.
+// An interactive trigger (e.g. a Button) opens the modal via PressComposeProvider — it keeps
+// firing its own declared action AND opens on one tap; a non-interactive trigger (Text/Row)
+// opens through the wrapping opener Pressable. The overlay is surface-local, not a native
+// portal (no OS back-button handling); a real adapter can swap in RN core Modal or a portal.
 export function Modal({ node }: CatalogComponentProps) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const p = node.properties;
   const trigger = typeof p.trigger === 'string' ? p.trigger : null;
   const content = typeof p.content === 'string' ? p.content : null;
+  const openModal = () => setOpen(true);
   return (
     <View>
       {trigger ? (
-        <Pressable accessibilityRole="button" onPress={() => setOpen(true)}>
-          <View pointerEvents="none">
+        <Pressable accessibilityRole="button" onPress={openModal}>
+          <PressComposeProvider value={openModal}>
             <NodeRenderer nodeId={trigger} />
-          </View>
+          </PressComposeProvider>
         </Pressable>
       ) : null}
       {open && content ? (

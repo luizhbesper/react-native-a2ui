@@ -90,6 +90,33 @@ describe('containers catalog — Modal', () => {
     expect(screen.queryByText('Inside the modal')).toBeNull();
   });
 
+  it('fires an interactive trigger own action and opens the modal on the same tap', async () => {
+    const { fake, screen } = await withSurface((f) => {
+      f.setNode({
+        id: 'root',
+        type: 'Modal',
+        properties: { trigger: 'trg', content: 'cnt' },
+      });
+      f.setNode({
+        id: 'trg',
+        type: 'Button',
+        properties: { child: 'lbl', action: { event: { name: 'openModalEvent' } } },
+      });
+      f.setNode({ id: 'lbl', type: 'Text', properties: { text: 'Open' } });
+      f.setNode({ id: 'cnt', type: 'Text', properties: { text: 'Inside the modal' } });
+    });
+    expect(screen.queryByText('Inside the modal')).toBeNull();
+    await act(async () => {
+      fireEvent.press(screen.getByText('Open'));
+    });
+    // The Button's own declared action dispatches...
+    expect(fake.dispatched).toEqual([
+      { name: 'openModalEvent', sourceComponentId: 'trg', context: undefined },
+    ]);
+    // ...and the modal opens, on the one tap.
+    expect(screen.getByText('Inside the modal')).toBeTruthy();
+  });
+
   it('tolerates missing trigger/content without crashing', async () => {
     const { screen } = await withSurface((f) => {
       f.setNode({ id: 'root', type: 'Modal', properties: {} });
