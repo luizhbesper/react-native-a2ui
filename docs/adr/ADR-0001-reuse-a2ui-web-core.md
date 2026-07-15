@@ -1,6 +1,6 @@
 # ADR-0001 — Reuse `@a2ui/web_core` as the protocol engine
 
-- Status: **Accepted** (spike gate in M0-T1) · Date: 2026-07-15
+- Status: **Accepted** — spike gate M0-T1 **GO** (web_core 0.10.4 ran under Hermes on iOS sim, no polyfills) · Date: 2026-07-15
 
 ## Context
 
