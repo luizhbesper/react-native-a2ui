@@ -62,3 +62,13 @@ export {
   resolveTheme,
   type Theme,
 } from './theme/tokens';
+// Transports (ADR-0005: feed batches into any ProtocolEngine; no web_core dependency)
+export { jsonlTransport } from './transports/jsonl';
+export { sseTransport } from './transports/sse';
+export type {
+  Transport,
+  TransportError,
+  TransportHandle,
+  TransportOptions,
+  TransportSource,
+} from './transports/types';
