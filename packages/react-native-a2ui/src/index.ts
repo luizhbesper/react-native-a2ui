@@ -63,6 +63,12 @@ export {
   type Theme,
 } from './theme/tokens';
 // Transports (ADR-0005: feed batches into any ProtocolEngine; no web_core dependency)
+export {
+  type A2ATransportOptions,
+  A2UI_A2A_EXTENSION_URI,
+  A2UI_DATA_PART_MIME,
+  a2aTransport,
+} from './transports/a2a';
 export { jsonlTransport } from './transports/jsonl';
 export { sseTransport } from './transports/sse';
 export type {
