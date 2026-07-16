@@ -11,6 +11,11 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./engine-types": {
+      "source": "./src/engine/types.ts",
+      "types": "./lib/typescript/src/engine/types.d.ts",
+      "default": "./lib/module/engine/types.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

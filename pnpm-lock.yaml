@@ -52,6 +52,9 @@ importers:
         specifier: ^3.25.2
         version: 3.25.2(zod@3.25.76)
     devDependencies:
+      react-native-a2ui:
+        specifier: workspace:*
+        version: link:../react-native-a2ui
       tsdown:
         specifier: ^0.22.8
         version: 0.22.8(typescript@7.0.2)
