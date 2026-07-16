@@ -1,0 +1,56 @@
+{
+  "name": "@react-native-a2ui/llm",
+  "version": "0.0.0",
+  "description": "Prompt generation and streaming helpers for driving A2UI agents with LLMs. Turns a registered component catalog into a system prompt a model can answer with native A2UI UI.",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!**/*.test.*",
+    "!**/__snapshots__"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "keywords": [
+    "a2ui",
+    "llm",
+    "prompt",
+    "generative-ui",
+    "agent",
+    "ai",
+    "gemini",
+    "claude",
+    "react-native"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luizhbesper/react-native-a2ui.git",
+    "directory": "packages/llm"
+  },
+  "author": "Luiz Esper <luiz.hb.esper@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/luizhbesper/react-native-a2ui#readme",
+  "devDependencies": {
+    "tsdown": "^0.22.8",
+    "vitest": "^4.1.10"
+  }
+}
