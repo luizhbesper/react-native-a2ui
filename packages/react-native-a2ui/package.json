@@ -17,7 +17,8 @@
     "src",
     "lib",
     "!**/*.test.*",
-    "!**/__fixtures__"
+    "!**/__fixtures__",
+    "!**/__mocks__"
   ],
   "sideEffects": false,
   "dependencies": {

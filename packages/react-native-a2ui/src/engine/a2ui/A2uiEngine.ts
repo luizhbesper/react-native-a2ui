@@ -45,6 +45,11 @@ function surfaceIdOf(message: unknown): string | undefined {
   return undefined;
 }
 
+/** Constructs the A2UI ProtocolEngine — the public way to get an engine for `<A2UIProvider>`. */
+export function createA2uiEngine(): ProtocolEngine {
+  return new A2uiEngine();
+}
+
 /** ProtocolEngine implementation #1: adapts @a2ui/web_core's MessageProcessor. */
 export class A2uiEngine implements ProtocolEngine {
   readonly #outbound = new Set<(msg: ClientMessage) => void>();

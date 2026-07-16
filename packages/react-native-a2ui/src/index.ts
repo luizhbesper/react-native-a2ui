@@ -29,6 +29,9 @@ export {
   Video,
 } from './catalog';
 
+// A2UI engine (the only web_core-backed ProtocolEngine; ADR-0005 boundary stays intact —
+// this re-exposes a factory from src/engine/a2ui/, consumers never import web_core directly)
+export { createA2uiEngine } from './engine/a2ui/A2uiEngine';
 // Protocol-neutral engine contract (ADR-0005)
 export type {
   ClientCapabilities,
