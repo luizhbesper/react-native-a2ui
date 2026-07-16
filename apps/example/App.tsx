@@ -1,6 +1,15 @@
+import { anthropicClient, streamA2UI } from '@react-native-a2ui/llm';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   A2UIProvider,
   basicCatalog,
@@ -8,13 +17,43 @@ import {
   createA2uiEngine,
   Surface,
 } from 'react-native-a2ui';
+import { SYSTEM_PROMPT } from './catalog';
 import { FIXTURES, type FixtureStream, surfaceIdOf } from './fixtures';
+
+// Public env var (Expo inlines EXPO_PUBLIC_*); empty when none is set. Never committed — the key
+// is entered at runtime in the dev-only field below or supplied via the environment.
+declare const process: { env: Record<string, string | undefined> };
+const ENV_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 
 // Preset chunk delays (ms) for the streaming simulation.
 const DELAYS = [0, 150, 400, 800];
 
-/** Fixture gallery: pick an official stream and replay it through the real renderer pipeline. */
+/** Two screens: the fixture gallery (M1-T8) and the live-model chat demo (M2-T5). */
 export default function App() {
+  const [tab, setTab] = useState<'chat' | 'gallery'>('chat');
+  return (
+    <View style={styles.root}>
+      <View style={styles.tabBar}>
+        {(['chat', 'gallery'] as const).map((t) => (
+          <Pressable
+            key={t}
+            onPress={() => setTab(t)}
+            style={[styles.tab, t === tab && styles.tabOn]}
+          >
+            <Text style={[styles.tabText, t === tab && styles.tabTextOn]}>
+              {t === 'chat' ? 'Live chat' : 'Fixture gallery'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {tab === 'chat' ? <ChatScreen /> : <Gallery />}
+      <StatusBar style="auto" />
+    </View>
+  );
+}
+
+/** Fixture gallery: pick an official stream and replay it through the real renderer pipeline. */
+function Gallery() {
   const [selected, setSelected] = useState<number | null>(null);
   const [delayMs, setDelayMs] = useState(400);
   const [nonce, setNonce] = useState(0);
@@ -32,6 +71,96 @@ export default function App() {
       onReplay={() => setNonce((n) => n + 1)}
       onDelay={setDelayMs}
     />
+  );
+}
+
+/**
+ * Live chat: a prompt feeds a real model's token stream through `streamA2UI` into the engine,
+ * rendering native UI as it arrives. Typing "book me a table" streams a booking form.
+ */
+function ChatScreen() {
+  const [engine] = useState(createA2uiEngine);
+  // ponytail: single Anthropic client (claude-opus-4-8). Swap for openaiClient/geminiClient in
+  // one line if a provider toggle is ever needed — deliberately no picker UI for the demo.
+  const [apiKey, setApiKey] = useState(ENV_API_KEY);
+  const [prompt, setPrompt] = useState('');
+  const [surfaceId, setSurfaceId] = useState<string | undefined>();
+  const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // The model picks the surfaceId in createSurface; render whichever it created last.
+  useEffect(() => engine.subscribeSurfaces((ids) => setSurfaceId(ids[ids.length - 1])), [engine]);
+
+  const send = useCallback(async () => {
+    const text = prompt.trim();
+    if (!text || !apiKey || streaming) return;
+    setError(null);
+    setStreaming(true);
+    try {
+      await streamA2UI({
+        client: anthropicClient({ apiKey }),
+        prompt: text,
+        engine,
+        system: SYSTEM_PROMPT,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setStreaming(false);
+    }
+  }, [prompt, apiKey, streaming, engine]);
+
+  return (
+    <View style={styles.screen}>
+      {ENV_API_KEY ? null : (
+        <TextInput
+          style={styles.keyInput}
+          value={apiKey}
+          onChangeText={setApiKey}
+          placeholder="Anthropic API key (dev only, not saved)"
+          placeholderTextColor="#999"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+        />
+      )}
+      <View style={styles.composer}>
+        <TextInput
+          style={styles.promptInput}
+          value={prompt}
+          onChangeText={setPrompt}
+          placeholder="Ask for UI, e.g. book me a table"
+          placeholderTextColor="#999"
+          editable={!streaming}
+          onSubmitEditing={send}
+          returnKeyType="send"
+        />
+        <Pressable
+          onPress={send}
+          disabled={streaming || !prompt.trim() || !apiKey}
+          style={[styles.sendBtn, (streaming || !prompt.trim() || !apiKey) && styles.sendBtnOff]}
+        >
+          {streaming ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.sendBtnText}>Send</Text>
+          )}
+        </Pressable>
+      </View>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <ScrollView style={styles.surface} contentContainerStyle={styles.surfaceBody}>
+        {surfaceId ? (
+          <A2UIProvider engine={engine} registry={basicCatalog}>
+            <Surface surfaceId={surfaceId} />
+          </A2UIProvider>
+        ) : (
+          <Text style={styles.note}>
+            {apiKey ? 'Send a prompt to stream native UI here.' : 'Enter an API key to begin.'}
+          </Text>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -153,7 +282,54 @@ function FixturePlayer({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff', paddingTop: 52 },
+  root: { flex: 1, backgroundColor: '#fff' },
+  tabBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 52,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  tab: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#f0f0f0' },
+  tabOn: { backgroundColor: '#2563eb' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#333' },
+  tabTextOn: { color: '#fff' },
+
+  keyInput: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#e2e2e2',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+  },
+  composer: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 10 },
+  promptInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e2e2e2',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  sendBtn: {
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#2563eb',
+    minWidth: 64,
+    alignItems: 'center',
+  },
+  sendBtnOff: { backgroundColor: '#9db8f0' },
+  sendBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  error: { color: '#b91c1c', fontSize: 12, paddingHorizontal: 12, paddingTop: 8 },
+
+  screen: { flex: 1, backgroundColor: '#fff', paddingTop: 8 },
   h1: { fontSize: 22, fontWeight: '700', paddingHorizontal: 16 },
   sub: { fontSize: 13, color: '#666', paddingHorizontal: 16, paddingBottom: 8 },
   listBody: { padding: 16, gap: 12 },
