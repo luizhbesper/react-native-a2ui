@@ -3,6 +3,8 @@ node_modules/
 
 # Builds
 lib/
+# ...but website/lib is hand-written Fumadocs source, not build output
+!website/lib/
 dist/
 .next/
 out/
