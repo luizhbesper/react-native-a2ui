@@ -9,6 +9,9 @@ const reactDir = path.dirname(require.resolve('react/package.json'));
 module.exports = {
   preset: '@react-native/jest-preset',
   testMatch: ['<rootDir>/src/**/*.test.tsx'],
+  // Mounting virtualized components (FlatList/VirtualizedList) in the test renderer is heavy;
+  // the 5s default is tight on slower CI runners. Give RNTL tests headroom (passes locally in <1s).
+  testTimeout: 20000,
   moduleNameMapper: {
     '^react$': reactDir,
     '^react/(.*)$': path.join(reactDir, '$1'),
