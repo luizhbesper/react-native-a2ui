@@ -1,6 +1,7 @@
 # ADR-0007 — Branching model and release flow
 
 - Status: **Accepted** · Date: 2026-07-15
+- Amendment (2026-07-15, provisional): the `feature/*` PR step is relaxed for now — work may commit directly to `dev`. `dev` → PR → `main` and "never commit to `main`" still hold. Promote to a superseding ADR if this becomes permanent.
 
 ## Context
 

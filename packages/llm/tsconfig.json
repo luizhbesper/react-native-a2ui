@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    // Resolve react-native-a2ui's engine types from source (its `source` export condition), so
+    // typecheck needs no prior build and the import-free types.ts drags no React Native in.
+    "customConditions": ["source"]
+  },
+  "include": ["src", "tsdown.config.ts", "vitest.config.ts"]
+}

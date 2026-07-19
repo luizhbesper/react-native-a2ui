@@ -11,15 +11,24 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./engine-types": {
+      "source": "./src/engine/types.ts",
+      "types": "./lib/typescript/src/engine/types.d.ts",
+      "default": "./lib/module/engine/types.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "lib",
     "!**/*.test.*",
-    "!**/__fixtures__"
+    "!**/__fixtures__",
+    "!**/__mocks__"
   ],
   "sideEffects": false,
+  "dependencies": {
+    "@a2ui/web_core": "0.10.4"
+  },
   "scripts": {
     "build": "bob build",
     "typecheck": "tsc --noEmit",
