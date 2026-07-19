@@ -1,6 +1,6 @@
 {
   "name": "@react-native-a2ui/llm",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Prompt generation and streaming helpers for driving A2UI agents with LLMs. Turns a registered component catalog into a system prompt a model can answer with native A2UI UI.",
   "type": "module",
   "main": "./dist/index.mjs",

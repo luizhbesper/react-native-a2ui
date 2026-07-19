@@ -1,6 +1,6 @@
 {
   "name": "react-native-a2ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React Native renderer for Google's A2UI protocol — agents compose real native UI, streaming, on the open A2UI standard. Built on the official @a2ui/web_core engine. Works in Expo (including Expo Go) and bare React Native.",
   "main": "./lib/module/index.js",
   "module": "./lib/module/index.js",
